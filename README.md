@@ -24,6 +24,14 @@ A detailed results view featuring advanced data visualization and UI components.
 
 ---
 
+## 📸 Screenshots
+
+| Home Screen | Generating Plan Screen | Result Screen |
+|:---:|:---:|:---:|
+| ![Home Screen](screenshots/home_screen.png) | ![Generating Plan Screen](screenshots/generating_plan_screen.png) | ![Result Screen](screenshots/result_screen.png) |
+
+---
+
 ## 🛠️ Technical Stack
 
 - **Framework**: [Flutter](https://flutter.dev)
@@ -73,7 +81,3 @@ The project is built using a **Modified Clean Architecture** pattern:
 - **Data Layer**: Handles ObjectBox persistence and Gemini API communication.
 - **Presentation Layer**: Manages the UI state and components via Riverpod providers.
 
----
-
-> [!NOTE]
-> *This application generates AI-driven nutritional guidance for general purposes. Please consult with a health professional for specific dietary requirements.*
