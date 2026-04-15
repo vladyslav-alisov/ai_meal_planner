@@ -44,7 +44,7 @@ A detailed results view featuring advanced data visualization and UI components.
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/ai_meal_planner.git
+   git clone <repository-url>
    cd ai_meal_planner
    ```
 
