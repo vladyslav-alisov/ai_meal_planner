@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/analytics/analytics_service.dart';
+import 'core/analytics/tracking_transparency_service.dart';
 import 'core/constants/app_constants.dart';
 import 'core/constants/app_theme.dart';
 import 'features/meal_planner/data/datasources/local/objectbox_store.dart';
@@ -24,11 +26,29 @@ Future<void> main() async {
   );
 }
 
-class AiMealPlannerApp extends ConsumerWidget {
+class AiMealPlannerApp extends ConsumerStatefulWidget {
   const AiMealPlannerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AiMealPlannerApp> createState() => _AiMealPlannerAppState();
+}
+
+class _AiMealPlannerAppState extends ConsumerState<AiMealPlannerApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeTrackingAndAnalytics();
+    });
+  }
+
+  Future<void> _initializeTrackingAndAnalytics() async {
+    await ref.read(trackingTransparencyServiceProvider).requestPermissionIfNeeded();
+    await ref.read(analyticsServiceProvider).initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
@@ -40,9 +60,7 @@ class AiMealPlannerApp extends ConsumerWidget {
             future: localSource.isOnboardingComplete(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
               }
 
               if (snapshot.data == true) {

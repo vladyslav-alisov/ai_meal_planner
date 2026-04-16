@@ -1,4 +1,14 @@
 PODS:
+  - app_tracking_transparency (0.0.1):
+    - Flutter
+  - appsflyer_sdk (6.17.9):
+    - appsflyer_sdk/Core (= 6.17.9)
+  - appsflyer_sdk/Core (6.17.9):
+    - AppsFlyerFramework (= 6.17.9)
+    - Flutter
+  - AppsFlyerFramework (6.17.9):
+    - AppsFlyerFramework/Main (= 6.17.9)
+  - AppsFlyerFramework/Main (6.17.9)
   - Firebase/CoreOnly (12.12.0):
     - FirebaseCore (~> 12.12.0)
   - firebase_analytics (12.3.0):
@@ -109,6 +119,8 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - app_tracking_transparency (from `.symlinks/plugins/app_tracking_transparency/ios`)
+  - appsflyer_sdk (from `.symlinks/plugins/appsflyer_sdk/ios`)
   - firebase_analytics (from `.symlinks/plugins/firebase_analytics/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
@@ -118,6 +130,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - AppsFlyerFramework
     - Firebase
     - FirebaseAnalytics
     - FirebaseCore
@@ -131,6 +144,10 @@ SPEC REPOS:
     - PromisesObjC
 
 EXTERNAL SOURCES:
+  app_tracking_transparency:
+    :path: ".symlinks/plugins/app_tracking_transparency/ios"
+  appsflyer_sdk:
+    :path: ".symlinks/plugins/appsflyer_sdk/ios"
   firebase_analytics:
     :path: ".symlinks/plugins/firebase_analytics/ios"
   firebase_core:
@@ -145,6 +162,9 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
 
 SPEC CHECKSUMS:
+  app_tracking_transparency: e169b653478da7bb15a6c61209015378ca73e375
+  appsflyer_sdk: 58b4cfc8c529730d0324899f3c5cd195959ee1a3
+  AppsFlyerFramework: 4f9a8237d40e9093941aef760cd77d606238aedd
   Firebase: aa154fee4e9b8eac17aa42344988865b3e857d33
   firebase_analytics: 76591011288f2ac2f185f987acf46544dd71893e
   firebase_core: 40bc9f4c0ee3a28fbfb1e00e2ddaed744bb86388

@@ -47,7 +47,9 @@ dependencies:
   shared_preferences: ^2.5.2
   firebase_core: ^4.7.0
   firebase_analytics: ^12.3.0
-  
+  appsflyer_sdk: ^6.17.9+1-rc1
+  app_tracking_transparency: ^2.0.6+1
+  appmetrica_plugin: ^4.0.0
 
 dev_dependencies:
   flutter_test:

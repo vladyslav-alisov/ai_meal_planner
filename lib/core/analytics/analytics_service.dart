@@ -1,7 +1,13 @@
+import 'package:ai_meal_planner/core/analytics/app_metrica.dart';
+import 'package:ai_meal_planner/core/analytics/apps_flyer_service.dart';
+import 'package:ai_meal_planner/core/analytics/firebase_analytics_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 abstract class AnalyticsService {
+  Future<void> initialize();
+
   Future<void> logScreenView({required String screenName, String? screenClass});
 
   Future<void> logPlannerViewed({required bool hasStoredPreferences});
@@ -10,11 +16,7 @@ abstract class AnalyticsService {
 
   Future<void> logOnboardingStarted({required bool isEditing});
 
-  Future<void> logOnboardingStepViewed({
-    required int stepIndex,
-    required String stepName,
-    required bool isEditing,
-  });
+  Future<void> logOnboardingStepViewed({required int stepIndex, required String stepName, required bool isEditing});
 
   Future<void> logOnboardingCompleted({
     required bool isEditing,
@@ -42,17 +44,9 @@ abstract class AnalyticsService {
     String? failureType,
   });
 
-  Future<void> logMealPlanSaved({
-    required bool isUpdate,
-    required int mealsCount,
-    required int shoppingItemsCount,
-  });
+  Future<void> logMealPlanSaved({required bool isUpdate, required int mealsCount, required int shoppingItemsCount});
 
-  Future<void> logMealPlanOpened({
-    required String source,
-    required bool isSavedPlan,
-    required int mealsCount,
-  });
+  Future<void> logMealPlanOpened({required String source, required bool isSavedPlan, required int mealsCount});
 
   Future<void> logMealPlanDeleted({required String source});
 
@@ -61,39 +55,44 @@ abstract class AnalyticsService {
   Future<void> logShoppingChecklistReset({required int itemsCount});
 }
 
-class FirebaseAppAnalyticsService implements AnalyticsService {
-  FirebaseAppAnalyticsService(this._analytics);
+class CombinedAnalyticsService implements AnalyticsService {
+  CombinedAnalyticsService(this._services);
 
-  final FirebaseAnalytics _analytics;
+  final List<AnalyticsService> _services;
 
   @override
-  Future<void> logScreenView({
-    required String screenName,
-    String? screenClass,
-  }) {
-    return _runSafely(
-      () => _analytics.logScreenView(
-        screenName: screenName,
-        screenClass: screenClass ?? screenName,
-      ),
-    );
+  Future<void> initialize() async {
+    for (final service in _services) {
+      await service.initialize();
+    }
   }
 
   @override
-  Future<void> logPlannerViewed({required bool hasStoredPreferences}) {
-    return _logEvent('planner_viewed', {
-      'has_stored_preferences': hasStoredPreferences,
-    });
+  Future<void> logScreenView({required String screenName, String? screenClass}) async {
+    for (final service in _services) {
+      await service.logScreenView(screenName: screenName, screenClass: screenClass);
+    }
   }
 
   @override
-  Future<void> logQuickActionTapped({required String action}) {
-    return _logEvent('quick_action_tapped', {'action': action});
+  Future<void> logPlannerViewed({required bool hasStoredPreferences}) async {
+    for (final service in _services) {
+      await service.logPlannerViewed(hasStoredPreferences: hasStoredPreferences);
+    }
   }
 
   @override
-  Future<void> logOnboardingStarted({required bool isEditing}) {
-    return _logEvent('onboarding_started', {'is_editing': isEditing});
+  Future<void> logQuickActionTapped({required String action}) async {
+    for (final service in _services) {
+      await service.logQuickActionTapped(action: action);
+    }
+  }
+
+  @override
+  Future<void> logOnboardingStarted({required bool isEditing}) async {
+    for (final service in _services) {
+      await service.logOnboardingStarted(isEditing: isEditing);
+    }
   }
 
   @override
@@ -101,12 +100,10 @@ class FirebaseAppAnalyticsService implements AnalyticsService {
     required int stepIndex,
     required String stepName,
     required bool isEditing,
-  }) {
-    return _logEvent('onboarding_step_viewed', {
-      'step_index': stepIndex,
-      'step_name': stepName,
-      'is_editing': isEditing,
-    });
+  }) async {
+    for (final service in _services) {
+      await service.logOnboardingStepViewed(stepIndex: stepIndex, stepName: stepName, isEditing: isEditing);
+    }
   }
 
   @override
@@ -118,16 +115,18 @@ class FirebaseAppAnalyticsService implements AnalyticsService {
     required bool hasAllergies,
     required bool hasExcludedFoods,
     required bool hasNotes,
-  }) {
-    return _logEvent('onboarding_completed', {
-      'is_editing': isEditing,
-      'goals_count': goalsCount,
-      'dietary_preferences_count': dietaryPreferencesCount,
-      'meals_per_day': mealsPerDay,
-      'has_allergies': hasAllergies,
-      'has_excluded_foods': hasExcludedFoods,
-      'has_notes': hasNotes,
-    });
+  }) async {
+    for (final service in _services) {
+      await service.logOnboardingCompleted(
+        isEditing: isEditing,
+        goalsCount: goalsCount,
+        dietaryPreferencesCount: dietaryPreferencesCount,
+        mealsPerDay: mealsPerDay,
+        hasAllergies: hasAllergies,
+        hasExcludedFoods: hasExcludedFoods,
+        hasNotes: hasNotes,
+      );
+    }
   }
 
   @override
@@ -138,15 +137,17 @@ class FirebaseAppAnalyticsService implements AnalyticsService {
     required bool hasAllergies,
     required bool hasExcludedFoods,
     required bool hasNotes,
-  }) {
-    return _logEvent('meal_plan_generation_requested', {
-      'meals_per_day': mealsPerDay,
-      'goals_count': goalsCount,
-      'dietary_preferences_count': dietaryPreferencesCount,
-      'has_allergies': hasAllergies,
-      'has_excluded_foods': hasExcludedFoods,
-      'has_notes': hasNotes,
-    });
+  }) async {
+    for (final service in _services) {
+      await service.logMealPlanGenerationRequested(
+        mealsPerDay: mealsPerDay,
+        goalsCount: goalsCount,
+        dietaryPreferencesCount: dietaryPreferencesCount,
+        hasAllergies: hasAllergies,
+        hasExcludedFoods: hasExcludedFoods,
+        hasNotes: hasNotes,
+      );
+    }
   }
 
   @override
@@ -155,18 +156,15 @@ class FirebaseAppAnalyticsService implements AnalyticsService {
     int? dailyCalories,
     int? mealsCount,
     String? failureType,
-  }) {
-    final parameters = <String, Object>{'success': success};
-    if (dailyCalories != null) {
-      parameters['daily_calories'] = dailyCalories;
+  }) async {
+    for (final service in _services) {
+      await service.logMealPlanGenerationCompleted(
+        success: success,
+        dailyCalories: dailyCalories,
+        mealsCount: mealsCount,
+        failureType: failureType,
+      );
     }
-    if (mealsCount != null) {
-      parameters['meals_count'] = mealsCount;
-    }
-    if (failureType != null) {
-      parameters['failure_type'] = failureType;
-    }
-    return _logEvent('meal_plan_generation_completed', parameters);
   }
 
   @override
@@ -174,53 +172,41 @@ class FirebaseAppAnalyticsService implements AnalyticsService {
     required bool isUpdate,
     required int mealsCount,
     required int shoppingItemsCount,
-  }) {
-    return _logEvent('meal_plan_saved', {
-      'is_update': isUpdate,
-      'meals_count': mealsCount,
-      'shopping_items_count': shoppingItemsCount,
-    });
+  }) async {
+    for (final service in _services) {
+      await service.logMealPlanSaved(
+        isUpdate: isUpdate,
+        mealsCount: mealsCount,
+        shoppingItemsCount: shoppingItemsCount,
+      );
+    }
   }
 
   @override
-  Future<void> logMealPlanOpened({
-    required String source,
-    required bool isSavedPlan,
-    required int mealsCount,
-  }) {
-    return _logEvent('meal_plan_opened', {
-      'source': source,
-      'is_saved_plan': isSavedPlan,
-      'meals_count': mealsCount,
-    });
+  Future<void> logMealPlanOpened({required String source, required bool isSavedPlan, required int mealsCount}) async {
+    for (final service in _services) {
+      await service.logMealPlanOpened(source: source, isSavedPlan: isSavedPlan, mealsCount: mealsCount);
+    }
   }
 
   @override
-  Future<void> logMealPlanDeleted({required String source}) {
-    return _logEvent('meal_plan_deleted', {'source': source});
+  Future<void> logMealPlanDeleted({required String source}) async {
+    for (final service in _services) {
+      await service.logMealPlanDeleted(source: source);
+    }
   }
 
   @override
-  Future<void> logHistoryViewed({required int savedPlansCount}) {
-    return _logEvent('history_viewed', {'saved_plans_count': savedPlansCount});
+  Future<void> logHistoryViewed({required int savedPlansCount}) async {
+    for (final service in _services) {
+      await service.logHistoryViewed(savedPlansCount: savedPlansCount);
+    }
   }
 
   @override
-  Future<void> logShoppingChecklistReset({required int itemsCount}) {
-    return _logEvent('shopping_checklist_reset', {'items_count': itemsCount});
-  }
-
-  Future<void> _logEvent(String name, Map<String, Object> parameters) {
-    return _runSafely(
-      () => _analytics.logEvent(name: name, parameters: parameters),
-    );
-  }
-
-  Future<void> _runSafely(Future<void> Function() action) async {
-    try {
-      await action();
-    } catch (_) {
-      // Analytics must never affect the app flow.
+  Future<void> logShoppingChecklistReset({required int itemsCount}) async {
+    for (final service in _services) {
+      await service.logShoppingChecklistReset(itemsCount: itemsCount);
     }
   }
 }
@@ -229,6 +215,21 @@ final firebaseAnalyticsProvider = Provider<FirebaseAnalytics>((ref) {
   return FirebaseAnalytics.instance;
 });
 
+final appsFlyerAnalyticsProvider = Provider<AnalyticsService>((ref) {
+  return AppsFlyerAppAnalyticsService(
+    devKey: dotenv.env['APPSFLYER_DEV_KEY'] ?? '',
+    appId: dotenv.env['APPSFLYER_APP_ID'] ?? '',
+  );
+});
+
+final appMetricaAnalyticsProvider = Provider<AnalyticsService>((ref) {
+  return AppMetricaAnalyticsService(dotenv.env['APPMETRICA_API_KEY'] ?? '');
+});
+
 final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
-  return FirebaseAppAnalyticsService(ref.watch(firebaseAnalyticsProvider));
+  return CombinedAnalyticsService([
+    FirebaseAppAnalyticsService(ref.watch(firebaseAnalyticsProvider)),
+    ref.watch(appsFlyerAnalyticsProvider),
+    ref.watch(appMetricaAnalyticsProvider),
+  ]);
 });

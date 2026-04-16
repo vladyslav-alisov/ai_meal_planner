@@ -33,6 +33,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  app_tracking_transparency:
+    dependency: "direct main"
+    description:
+      name: app_tracking_transparency
+      sha256: "1f71f4d8402552fbf8b191d4edab301f233c1af794878b7bc56c708470ffd74c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.6+1"
+  appmetrica_plugin:
+    dependency: "direct main"
+    description:
+      name: appmetrica_plugin
+      sha256: "4e25afbd1b3cfa334c68695c619563da85fab4130ecc025de24bc9adef7d09af"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  appsflyer_sdk:
+    dependency: "direct main"
+    description:
+      name: appsflyer_sdk
+      sha256: ff3b1ce46c273f5f781af70da4b51770064be73e1d61bab5e5a75370ef3f6085
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.17.9+1-rc1"
   archive:
     dependency: transitive
     description:
@@ -249,6 +273,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  decimal:
+    dependency: transitive
+    description:
+      name: decimal
+      sha256: fc706a5618b81e5b367b01dd62621def37abc096f2b46a9bd9068b64c1fa36d0
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.4"
   dio:
     dependency: "direct main"
     description:
@@ -824,6 +856,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  rational:
+    dependency: transitive
+    description:
+      name: rational
+      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.3"
   riverpod:
     dependency: transitive
     description:

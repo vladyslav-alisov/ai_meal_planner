@@ -1,1 +1,30 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"ai-meal-planner-d8a0a","appId":"1:47556561658:android:f585afc5075ab275a01743","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"ai-meal-planner-d8a0a","appId":"1:47556561658:ios:7d5dd8b0f4f1e1bea01743","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"ai-meal-planner-d8a0a","configurations":{"android":"1:47556561658:android:f585afc5075ab275a01743","ios":"1:47556561658:ios:7d5dd8b0f4f1e1bea01743"}}}}}}
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "ai-meal-planner-d8a0a",
+                    "appId": "1:47556561658:android:f585afc5075ab275a01743",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "ai-meal-planner-d8a0a",
+                    "appId": "1:47556561658:ios:7d5dd8b0f4f1e1bea01743",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "ai-meal-planner-d8a0a",
+                    "configurations": {
+                        "android": "1:47556561658:android:f585afc5075ab275a01743",
+                        "ios": "1:47556561658:ios:7d5dd8b0f4f1e1bea01743"
+                    }
+                }
+            }
+        }
+    }
+}
