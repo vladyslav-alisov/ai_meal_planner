@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/ads/ads_service.dart';
 import 'core/analytics/analytics_service.dart';
 import 'core/analytics/tracking_transparency_service.dart';
 import 'core/constants/app_constants.dart';
@@ -38,13 +39,16 @@ class _AiMealPlannerAppState extends ConsumerState<AiMealPlannerApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeTrackingAndAnalytics();
+      _initializeServices();
     });
   }
 
-  Future<void> _initializeTrackingAndAnalytics() async {
-    await ref.read(trackingTransparencyServiceProvider).requestPermissionIfNeeded();
+  Future<void> _initializeServices() async {
+    await ref
+        .read(trackingTransparencyServiceProvider)
+        .requestPermissionIfNeeded();
     await ref.read(analyticsServiceProvider).initialize();
+    await ref.read(adsServiceProvider).initialize();
   }
 
   @override
@@ -60,7 +64,9 @@ class _AiMealPlannerAppState extends ConsumerState<AiMealPlannerApp> {
             future: localSource.isOnboardingComplete(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
               }
 
               if (snapshot.data == true) {

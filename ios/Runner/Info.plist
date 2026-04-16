@@ -28,6 +28,8 @@
 		<true/>
 		<key>NSUserTrackingUsageDescription</key>
 		<string>This app collects data to improve your experience and show relevant ads.</string>
+		<key>GADApplicationIdentifier</key>
+		<string>ca-app-pub-3940256099942544~3347511713</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ads/widgets/adaptive_banner_ad_section.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../controllers/history_controller.dart';
 import '../widgets/app_background.dart';
@@ -68,9 +69,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   return SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     sliver: SliverList.separated(
-                      itemCount: plans.length,
+                      itemCount: plans.length + 1,
                       itemBuilder: (context, index) {
-                        final plan = plans[index];
+                        if (index == 0) {
+                          return const AdaptiveBannerAdSection(
+                            horizontalPadding: 0,
+                            bottomPadding: 10,
+                          );
+                        }
+
+                        final plan = plans[index - 1];
                         return Dismissible(
                           key: Key('plan_${plan.id}'),
                           direction: DismissDirection.endToStart,

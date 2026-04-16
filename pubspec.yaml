@@ -50,6 +50,7 @@ dependencies:
   appsflyer_sdk: ^6.17.9+1-rc1
   app_tracking_transparency: ^2.0.6+1
   appmetrica_plugin: ^4.0.0
+  google_mobile_ads: ^8.0.0
 
 dev_dependencies:
   flutter_test:

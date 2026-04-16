@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ads/ads_service.dart';
+import '../../../../core/ads/widgets/adaptive_banner_ad_section.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../domain/entities/user_preferences.dart';
 import '../controllers/meal_planner_controller.dart';
@@ -116,6 +118,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                           _buildHeroCard(context, plannerState),
                           const SizedBox(height: 24),
                           _buildQuickActions(context),
+                          const SizedBox(height: 20),
+                          const AdaptiveBannerAdSection(),
                           const SizedBox(height: 32),
                           _buildRecentPlanSection(context, historyState),
                           const SizedBox(height: 32),
@@ -411,6 +415,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         .generateMealPlan(_preferences!);
 
     if (!mounted || plan == null) {
+      return;
+    }
+
+    await ref.read(adsServiceProvider).maybeShowMealPlanInterstitial();
+    if (!mounted) {
       return;
     }
 
