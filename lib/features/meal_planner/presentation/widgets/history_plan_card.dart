@@ -49,7 +49,16 @@ class HistoryPlanCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              _Badge(label: mealPlan.userPreferences.dietaryPreferences.join(', ')),
+              Text(
+                formattedDate,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _Badge(
+                label: mealPlan.userPreferences.dietaryPreferences.join(', '),
+              ),
               const SizedBox(height: 14),
               Wrap(
                 spacing: 8,

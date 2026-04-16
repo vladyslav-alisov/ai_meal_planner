@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/analytics/analytics_service.dart';
 import '../../domain/entities/user_preferences.dart';
 import 'meal_planner_providers.dart';
 
@@ -50,17 +52,30 @@ class OnboardingController extends Notifier<OnboardingState> {
     state = state.copyWith(currentPage: page);
   }
 
-  Future<void> completeOnboarding() async {
+  Future<void> completeOnboarding({required bool isEditing}) async {
     if (state.preferences == null) return;
-    
+
+    final preferences = state.preferences!;
     final localSource = ref.read(userPreferencesLocalSourceProvider);
-    await localSource.saveUserPreferences(state.preferences!);
+    await localSource.saveUserPreferences(preferences);
     await localSource.setOnboardingComplete(true);
-    
+    await ref
+        .read(analyticsServiceProvider)
+        .logOnboardingCompleted(
+          isEditing: isEditing,
+          goalsCount: preferences.goals.length,
+          dietaryPreferencesCount: preferences.dietaryPreferences.length,
+          mealsPerDay: preferences.mealsPerDay,
+          hasAllergies: preferences.allergies.isNotEmpty,
+          hasExcludedFoods: preferences.excludedFoods.isNotEmpty,
+          hasNotes: preferences.notes.trim().isNotEmpty,
+        );
+
     state = state.copyWith(isComplete: true);
   }
 }
 
-final onboardingControllerProvider = NotifierProvider<OnboardingController, OnboardingState>(
-  OnboardingController.new,
-);
+final onboardingControllerProvider =
+    NotifierProvider<OnboardingController, OnboardingState>(
+      OnboardingController.new,
+    );

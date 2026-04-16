@@ -23,7 +23,9 @@ class GeminiMealPlannerRemoteDataSource implements MealPlannerRemoteDataSource {
   Future<MealPlanModel> generateMealPlan(UserPreferences preferences) async {
     final apiKey = dotenv.env['GEMINI_API_KEY']?.trim() ?? '';
     if (apiKey.isEmpty) {
-      throw const ValidationException('Missing AI API key. Add GEMINI_API_KEY to your .env file.');
+      throw const ValidationException(
+        'Missing AI API key. Add GEMINI_API_KEY to your .env file.',
+      );
     }
 
     final userPreferences = UserPreferencesModel.fromEntity(preferences);
@@ -45,11 +47,16 @@ class GeminiMealPlannerRemoteDataSource implements MealPlannerRemoteDataSource {
             'responseSchema': _responseSchema,
           },
         },
-        options: Options(validateStatus: (status) => status != null && status < 500),
+        options: Options(
+          validateStatus: (status) => status != null && status < 500,
+        ),
       );
 
-      if (response.statusCode == HttpStatus.unauthorized || response.statusCode == HttpStatus.forbidden) {
-        throw const ApiException('The AI service rejected the API key. Please verify your configuration.');
+      if (response.statusCode == HttpStatus.unauthorized ||
+          response.statusCode == HttpStatus.forbidden) {
+        throw const ApiException(
+          'The AI service rejected the API key. Please verify your configuration.',
+        );
       }
 
       if (response.statusCode != HttpStatus.ok) {
@@ -66,30 +73,42 @@ class GeminiMealPlannerRemoteDataSource implements MealPlannerRemoteDataSource {
 
       final parts = candidates.first['content']?['parts'];
       if (parts is! List || parts.isEmpty) {
-        throw const ParsingException('The AI service response did not contain JSON.');
+        throw const ParsingException(
+          'The AI service response did not contain JSON.',
+        );
       }
 
       final rawText = parts.first['text']?.toString() ?? '';
       final json = JsonUtils.decodeJsonObject(rawText);
-      final mealPlan = MealPlanModel.fromJson(json, userPreferences: userPreferences);
+      final mealPlan = MealPlanModel.fromJson(
+        json,
+        userPreferences: userPreferences,
+      );
 
       if (mealPlan.meals.isEmpty || mealPlan.shoppingList.isEmpty) {
-        throw const ParsingException('The AI service returned incomplete meal plan data.');
+        throw const ParsingException(
+          'The AI service returned incomplete meal plan data.',
+        );
       }
 
       return mealPlan;
     } on DioException catch (error) {
-      print("DioException: ${error.message}");
       if (error.type == DioExceptionType.connectionError ||
           error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.sendTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
           error.error is SocketException) {
-        throw const NetworkException('Please check your internet connection and try again.');
+        throw const NetworkException(
+          'Please check your internet connection and try again.',
+        );
       }
-      throw const NetworkException('The AI service is temporarily unreachable. Please try again later.');
+      throw const NetworkException(
+        'The AI service is temporarily unreachable. Please try again later.',
+      );
     } on FormatException {
-      throw const ParsingException('Malformed JSON returned by the AI service.');
+      throw const ParsingException(
+        'Malformed JSON returned by the AI service.',
+      );
     }
   }
 
@@ -144,7 +163,15 @@ const Map<String, dynamic> _responseSchema = {
       'type': 'ARRAY',
       'items': {
         'type': 'OBJECT',
-        'required': ['name', 'calories', 'proteinGrams', 'carbsGrams', 'fatGrams', 'ingredients', 'instructions'],
+        'required': [
+          'name',
+          'calories',
+          'proteinGrams',
+          'carbsGrams',
+          'fatGrams',
+          'ingredients',
+          'instructions',
+        ],
         'properties': {
           'name': {'type': 'STRING'},
           'calories': {'type': 'INTEGER'},

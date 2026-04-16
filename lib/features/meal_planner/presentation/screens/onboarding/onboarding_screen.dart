@@ -1,6 +1,8 @@
 import 'package:ai_meal_planner/core/utils/string_list_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../../core/analytics/analytics_service.dart';
 import '../../../domain/entities/user_preferences.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../planner_screen.dart';
@@ -30,6 +32,24 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  static const _stepNames = <String>[
+    'welcome',
+    'sex',
+    'age',
+    'height',
+    'weight',
+    'goals',
+    'activity_level',
+    'cooking_level',
+    'prep_time',
+    'dietary_preferences',
+    'meals_per_day',
+    'allergies',
+    'excluded_foods',
+    'additional_notes',
+    'summary',
+  ];
+
   late PageController _pageController;
 
   final int _totalSteps = 15;
@@ -63,11 +83,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _selectedActivityLevel = initial?.activityLevel;
     _selectedCookingLevel = initial?.cookingLevel;
     _selectedTimeConstraint = initial?.timeConstraint;
-    _selectedDietaryPreferences = initial != null ? List.from(initial.dietaryPreferences) : [];
+    _selectedDietaryPreferences = initial != null
+        ? List.from(initial.dietaryPreferences)
+        : [];
     _mealsPerDay = initial?.mealsPerDay ?? 3;
 
-    _allergiesController = TextEditingController(text: initial?.allergies.join(', ') ?? '');
-    _excludedFoodsController = TextEditingController(text: initial?.excludedFoods.join(', ') ?? '');
+    _allergiesController = TextEditingController(
+      text: initial?.allergies.join(', ') ?? '',
+    );
+    _excludedFoodsController = TextEditingController(
+      text: initial?.excludedFoods.join(', ') ?? '',
+    );
     _notesController = TextEditingController(text: initial?.notes ?? '');
 
     final initialPage = initial != null ? 1 : 0;
@@ -76,6 +102,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // Sync controller state with initial page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onboardingControllerProvider.notifier).setPage(initialPage);
+      ref
+          .read(analyticsServiceProvider)
+          .logScreenView(screenName: 'onboarding_screen');
+      ref
+          .read(analyticsServiceProvider)
+          .logOnboardingStarted(isEditing: widget.initialPreferences != null);
+      _logOnboardingStep(initialPage);
     });
   }
 
@@ -90,13 +123,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _onNext() {
     if (_pageController.position.isScrollingNotifier.value) return;
-    
+
     FocusManager.instance.primaryFocus?.unfocus();
     if (_pageController.page == _totalSteps - 1) {
       _complete();
     } else {
-      _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+      final nextIndex = ref.read(onboardingControllerProvider).currentPage + 1;
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
       ref.read(onboardingControllerProvider.notifier).nextStep();
+      _logOnboardingStep(nextIndex);
     }
   }
 
@@ -104,8 +142,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_pageController.position.isScrollingNotifier.value) return;
 
     FocusManager.instance.primaryFocus?.unfocus();
-    _pageController.previousPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+    final previousIndex =
+        ref.read(onboardingControllerProvider).currentPage - 1;
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
     ref.read(onboardingControllerProvider.notifier).previousStep();
+    _logOnboardingStep(previousIndex);
   }
 
   void _toggleGoal(String goal) {
@@ -160,10 +204,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
 
     ref.read(onboardingControllerProvider.notifier).updatePreferences(prefs);
-    await ref.read(onboardingControllerProvider.notifier).completeOnboarding();
+    await ref
+        .read(onboardingControllerProvider.notifier)
+        .completeOnboarding(isEditing: widget.initialPreferences != null);
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const PlannerScreen()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const PlannerScreen()),
+      );
     }
   }
 
@@ -204,6 +252,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _logOnboardingStep(int stepIndex) {
+    if (stepIndex < 0 || stepIndex >= _stepNames.length) {
+      return;
+    }
+
+    ref
+        .read(analyticsServiceProvider)
+        .logOnboardingStepViewed(
+          stepIndex: stepIndex + 1,
+          stepName: _stepNames[stepIndex],
+          isEditing: widget.initialPreferences != null,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
@@ -217,7 +279,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     if (state.currentPage > 0)
@@ -234,7 +299,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         child: LinearProgressIndicator(
                           value: (state.currentPage + 1) / _totalSteps,
                           minHeight: 8,
-                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                         ),
                       ),
                     ),
@@ -258,22 +325,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     const WelcomeStep(),
-                    SexStep(selectedSex: _selectedSex, onSexChanged: (val) => setState(() => _selectedSex = val)),
-                    AgeStep(selectedAge: _selectedAge, onAgeChanged: (val) => setState(() => _selectedAge = val)),
-                    HeightStep(heightCm: _heightCm, onHeightChanged: (val) => setState(() => _heightCm = val)),
-                    WeightStep(weightKg: _weightKg, onWeightChanged: (val) => setState(() => _weightKg = val)),
-                    GoalStep(selectedGoals: _selectedGoals, onGoalToggled: _toggleGoal),
+                    SexStep(
+                      selectedSex: _selectedSex,
+                      onSexChanged: (val) => setState(() => _selectedSex = val),
+                    ),
+                    AgeStep(
+                      selectedAge: _selectedAge,
+                      onAgeChanged: (val) => setState(() => _selectedAge = val),
+                    ),
+                    HeightStep(
+                      heightCm: _heightCm,
+                      onHeightChanged: (val) => setState(() => _heightCm = val),
+                    ),
+                    WeightStep(
+                      weightKg: _weightKg,
+                      onWeightChanged: (val) => setState(() => _weightKg = val),
+                    ),
+                    GoalStep(
+                      selectedGoals: _selectedGoals,
+                      onGoalToggled: _toggleGoal,
+                    ),
                     ActivityLevelStep(
                       selectedActivityLevel: _selectedActivityLevel,
-                      onActivityLevelChanged: (val) => setState(() => _selectedActivityLevel = val),
+                      onActivityLevelChanged: (val) =>
+                          setState(() => _selectedActivityLevel = val),
                     ),
                     CookingLevelStep(
                       selectedCookingLevel: _selectedCookingLevel,
-                      onCookingLevelChanged: (val) => setState(() => _selectedCookingLevel = val),
+                      onCookingLevelChanged: (val) =>
+                          setState(() => _selectedCookingLevel = val),
                     ),
                     PrepTimeStep(
                       selectedTimeConstraint: _selectedTimeConstraint,
-                      onTimeConstraintChanged: (val) => setState(() => _selectedTimeConstraint = val),
+                      onTimeConstraintChanged: (val) =>
+                          setState(() => _selectedTimeConstraint = val),
                     ),
                     DietaryPreferenceStep(
                       selectedPreferences: _selectedDietaryPreferences,
@@ -281,7 +366,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                     MealsPerDayStep(
                       mealsPerDay: _mealsPerDay,
-                      onMealsPerDayChanged: (val) => setState(() => _mealsPerDay = val),
+                      onMealsPerDayChanged: (val) =>
+                          setState(() => _mealsPerDay = val),
                     ),
                     AllergiesStep(controller: _allergiesController),
                     ExcludedFoodsStep(controller: _excludedFoodsController),
@@ -296,12 +382,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isStepValid(state.currentPage) ? _onNext : null,
-                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18)),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                    ),
                     child: Text(
                       state.currentPage == 0
                           ? 'Get Started'
                           : state.currentPage == _totalSteps - 1
-                          ? (widget.initialPreferences != null ? 'Save Changes' : 'Go to Planner')
+                          ? (widget.initialPreferences != null
+                                ? 'Save Changes'
+                                : 'Go to Planner')
                           : 'Continue',
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/utils/error_message_mapper.dart';
 import '../../domain/entities/meal_plan.dart';
 import 'meal_planner_providers.dart';
@@ -27,6 +28,9 @@ class HistoryController extends AsyncNotifier<List<MealPlan>> {
   Future<void> deletePlan(int id) async {
     try {
       await ref.read(mealPlanRepositoryProvider).deleteMealPlan(id);
+      await ref
+          .read(analyticsServiceProvider)
+          .logMealPlanDeleted(source: 'history_screen');
       await refreshHistory();
     } catch (error, stackTrace) {
       state = AsyncError(mapExceptionToMessage(error), stackTrace);

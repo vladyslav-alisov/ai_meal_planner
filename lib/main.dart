@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import 'features/meal_planner/presentation/screens/planner_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+  await Firebase.initializeApp();
   final objectBox = await MealPlannerObjectBox.create();
 
   runApp(
@@ -41,12 +43,12 @@ class AiMealPlannerApp extends ConsumerWidget {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
-                }
-              
+              }
+
               if (snapshot.data == true) {
                 return const PlannerScreen();
               }
-              
+
               return const OnboardingScreen();
             },
           );

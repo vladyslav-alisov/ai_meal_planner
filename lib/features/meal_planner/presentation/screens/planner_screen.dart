@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/analytics/analytics_service.dart';
 import '../../domain/entities/user_preferences.dart';
 import '../controllers/meal_planner_controller.dart';
 import '../controllers/meal_planner_providers.dart';
@@ -37,6 +37,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   Future<void> _loadPreferences() async {
     final localSource = ref.read(userPreferencesLocalSourceProvider);
     final prefs = await localSource.getUserPreferences();
+    await ref
+        .read(analyticsServiceProvider)
+        .logScreenView(screenName: 'planner_screen');
+    await ref
+        .read(analyticsServiceProvider)
+        .logPlannerViewed(hasStoredPreferences: prefs != null);
     if (mounted) {
       setState(() {
         _preferences = prefs;
@@ -51,10 +57,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final plannerState = ref.watch(mealPlannerControllerProvider);
     final historyState = ref.watch(historyControllerProvider);
 
-    ref.listen<MealPlannerState>(mealPlannerControllerProvider, (previous, next) {
+    ref.listen<MealPlannerState>(mealPlannerControllerProvider, (
+      previous,
+      next,
+    ) {
       final errorMessage = next.errorMessage;
       if (errorMessage != null && errorMessage != previous?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
         ref.read(mealPlannerControllerProvider.notifier).clearError();
       }
     });
@@ -89,7 +100,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                           Text(
                             'Your intelligent nutrition assistant',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                         ],
@@ -156,7 +169,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -181,7 +198,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
           const SizedBox(height: 12),
           Text(
             'Generate a personalized meal plan based on your unique profile and preferences.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
           ),
           const SizedBox(height: 28),
           ElevatedButton(
@@ -190,7 +209,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               backgroundColor: Colors.white,
               foregroundColor: theme.colorScheme.primary,
               minimumSize: const Size(double.infinity, 60),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               elevation: 0,
             ),
             child: const Row(
@@ -198,7 +219,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               children: [
                 Icon(Icons.rocket_launch_rounded),
                 SizedBox(width: 12),
-                Text('Generate Meal Plan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  'Generate Meal Plan',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ],
             ),
           ),
@@ -219,17 +243,32 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         DashboardAction(
           icon: Icons.history_rounded,
           label: 'History',
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HistoryScreen()));
+          onTap: () async {
+            await ref
+                .read(analyticsServiceProvider)
+                .logQuickActionTapped(action: 'history');
+            if (!context.mounted) {
+              return;
+            }
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const HistoryScreen()),
+            );
           },
         ),
         DashboardAction(
           icon: Icons.person_search_rounded,
           label: 'Update Profile',
-          onTap: () {
+          onTap: () async {
+            await ref
+                .read(analyticsServiceProvider)
+                .logQuickActionTapped(action: 'update_profile');
+            if (!context.mounted) {
+              return;
+            }
             Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => OnboardingScreen(initialPreferences: _preferences),
+                builder: (_) =>
+                    OnboardingScreen(initialPreferences: _preferences),
               ),
             );
           },
@@ -238,7 +277,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     );
   }
 
-  Widget _buildRecentPlanSection(BuildContext context, AsyncValue<List<MealPlan>> historyState) {
+  Widget _buildRecentPlanSection(
+    BuildContext context,
+    AsyncValue<List<MealPlan>> historyState,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,10 +288,25 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Recent Plan', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Recent Plan',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HistoryScreen()));
+              onPressed: () async {
+                await ref
+                    .read(analyticsServiceProvider)
+                    .logQuickActionTapped(action: 'history_see_all');
+                if (!context.mounted) {
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const HistoryScreen(),
+                  ),
+                );
               },
               child: const Text('See All'),
             ),
@@ -262,10 +319,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               return _buildEmptyRecentState(context);
             }
             final latestPlan = plans.first;
-            return _RecentPlanCard(plan: latestPlan);
+            return _RecentPlanCard(
+              plan: latestPlan,
+              onTap: () async {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ResultScreen(
+                      initialPlan: latestPlan,
+                      analyticsSource: 'planner_recent',
+                    ),
+                  ),
+                );
+              },
+            );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text('Could not load recent plans.'),
+          error: (error, stackTrace) =>
+              const Text('Could not load recent plans.'),
         ),
       ],
     );
@@ -279,11 +349,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 48, color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 48,
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          ),
           const SizedBox(height: 16),
           Text(
             'No plans generated yet',
@@ -310,7 +386,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Your Profile Hub', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Your Profile Hub',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -322,24 +403,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     );
   }
 
-
   Future<void> _onGeneratePressed() async {
     if (_preferences == null) return;
 
-    final plan = await ref.read(mealPlannerControllerProvider.notifier).generateMealPlan(_preferences!);
+    final plan = await ref
+        .read(mealPlannerControllerProvider.notifier)
+        .generateMealPlan(_preferences!);
 
     if (!mounted || plan == null) {
       return;
     }
 
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ResultScreen(initialPlan: plan)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            ResultScreen(initialPlan: plan, analyticsSource: 'generated'),
+      ),
+    );
   }
 }
 
 class _RecentPlanCard extends StatelessWidget {
-  const _RecentPlanCard({required this.plan});
+  const _RecentPlanCard({required this.plan, required this.onTap});
 
   final MealPlan plan;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -350,9 +438,7 @@ class _RecentPlanCard extends StatelessWidget {
       elevation: 2,
       shadowColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ResultScreen(initialPlan: plan)));
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -366,7 +452,11 @@ class _RecentPlanCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
-                  child: Icon(Icons.restaurant_rounded, color: theme.colorScheme.primary, size: 30),
+                  child: Icon(
+                    Icons.restaurant_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 30,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -383,12 +473,16 @@ class _RecentPlanCard extends StatelessWidget {
                     ),
                     Text(
                       '${plan.dailyCalories} kcal • ${plan.meals.length} meals',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       plan.userPreferences.goals.take(2).join(', '),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -418,21 +512,32 @@ class _ProfileSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Goals', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const Text(
+            'Goals',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: preferences.goals.map((g) => PillBadge(label: g)).toList(),
+            children: preferences.goals
+                .map((g) => PillBadge(label: g))
+                .toList(),
           ),
           const SizedBox(height: 16),
-          const Text('Eat Styles', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const Text(
+            'Eat Styles',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: preferences.dietaryPreferences
-                .map((d) => PillBadge(label: d, color: theme.colorScheme.secondary))
+                .map(
+                  (d) =>
+                      PillBadge(label: d, color: theme.colorScheme.secondary),
+                )
                 .toList(),
           ),
           const Divider(height: 32),
@@ -440,9 +545,18 @@ class _ProfileSummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _StatItem(label: 'Age', value: '${preferences.age}'),
-              _StatItem(label: 'Height', value: '${preferences.heightCm.toInt()} cm'),
-              _StatItem(label: 'Weight', value: '${preferences.weightKg.toInt()} kg'),
-              _StatItem(label: 'Meals/Day', value: '${preferences.mealsPerDay}'),
+              _StatItem(
+                label: 'Height',
+                value: '${preferences.heightCm.toInt()} cm',
+              ),
+              _StatItem(
+                label: 'Weight',
+                value: '${preferences.weightKg.toInt()} kg',
+              ),
+              _StatItem(
+                label: 'Meals/Day',
+                value: '${preferences.mealsPerDay}',
+              ),
             ],
           ),
         ],
@@ -464,11 +578,16 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         Text(
           label,
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );

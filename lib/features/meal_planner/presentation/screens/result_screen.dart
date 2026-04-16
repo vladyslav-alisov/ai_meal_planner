@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../domain/entities/meal_plan.dart';
 import '../controllers/meal_planner_controller.dart';
 import '../widgets/app_background.dart';
 import '../widgets/meal_card.dart';
-import '../widgets/section_card.dart';
-import '../widgets/summary_metric_card.dart';
 import '../widgets/loading_overlay.dart';
 
 import '../widgets/macro_dashboard.dart';
 import '../widgets/shopping_checklist.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
-  const ResultScreen({required this.initialPlan, super.key});
+  const ResultScreen({required this.initialPlan, this.analyticsSource = 'generated', super.key});
 
   final MealPlan initialPlan;
+  final String analyticsSource;
 
   @override
   ConsumerState<ResultScreen> createState() => _ResultScreenState();
@@ -31,6 +31,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     _plan = widget.initialPlan;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(mealPlannerControllerProvider.notifier).setCurrentPlan(_plan);
+      ref.read(analyticsServiceProvider).logScreenView(screenName: 'result_screen');
+      ref
+          .read(analyticsServiceProvider)
+          .logMealPlanOpened(
+            source: widget.analyticsSource,
+            isSavedPlan: _plan.id != null,
+            mealsCount: _plan.meals.length,
+          );
     });
   }
 
@@ -74,15 +82,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                               ),
                           ],
                         ),
-                        SliverPersistentHeader(
-                          pinned: true,
-                          delegate: MacroHeaderDelegate(plan: displayPlan),
-                        ),
+                        SliverPersistentHeader(pinned: true, delegate: MacroHeaderDelegate(plan: displayPlan)),
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                           sliver: SliverList(
                             delegate: SliverChildListDelegate([
-                              Text('Daily Guide', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                'Daily Guide',
+                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                               const SizedBox(height: 8),
                               Text(
                                 '${displayPlan.userPreferences.goals.join(', ')} • ${displayPlan.userPreferences.mealsPerDay} meals',
@@ -97,7 +105,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                 children: [
                                   const Icon(Icons.restaurant_rounded, size: 20),
                                   const SizedBox(width: 12),
-                                  Text('Today\'s Meals', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'Today\'s Meals',
+                                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -118,13 +129,19 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                     children: [
                                       const Icon(Icons.shopping_cart_checkout_rounded, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Grocery Checklist', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                                      Text(
+                                        'Grocery Checklist',
+                                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                      ),
                                     ],
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.restart_alt_rounded, size: 20),
                                     tooltip: 'Clear checks',
-                                    onPressed: () {
+                                    onPressed: () async {
+                                      await ref
+                                          .read(analyticsServiceProvider)
+                                          .logShoppingChecklistReset(itemsCount: displayPlan.shoppingList.length);
                                       setState(() {
                                         _shoppingVersion++;
                                       });
@@ -159,12 +176,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
           // Sticky Bottom Bar (Only for unsaved plans)
           if (!isHistorical)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomActions(context, state, displayPlan, isSaved),
-            ),
+            Positioned(left: 0, right: 0, bottom: 0, child: _buildBottomActions(context, state, displayPlan, isSaved)),
 
           if (state.isGenerating) const LoadingOverlay(),
         ],
@@ -194,14 +206,24 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             child: ElevatedButton.icon(
               onPressed: state.isSaving || state.isGenerating || isSaved ? null : _onSavePressed,
               icon: state.isSaving
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
                   : Icon(isSaved ? Icons.check_circle_rounded : Icons.bookmark_add_rounded),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
               label: Text(
-                state.isSaving ? 'Saving...' : isSaved ? 'Saved' : displayPlan.id == null ? 'Save Plan' : 'Update Plan',
+                state.isSaving
+                    ? 'Saving...'
+                    : isSaved
+                    ? 'Saved'
+                    : displayPlan.id == null
+                    ? 'Save Plan'
+                    : 'Update Plan',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -231,15 +253,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
 
     setState(() {
-      _plan = _plan.copyWith(
-        id: savedId,
-        createdAt: _plan.createdAt ?? DateTime.now(),
-      );
+      _plan = _plan.copyWith(id: savedId, createdAt: _plan.createdAt ?? DateTime.now());
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Meal plan saved and synchronized.')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Meal plan saved and synchronized.')));
   }
 
   Future<void> _onRegeneratePressed() async {
@@ -255,16 +272,17 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   }
 
   Future<void> _showDeleteConfirmation(BuildContext context, WidgetRef ref, int planId) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Meal Plan?'),
-        content: const Text('Are you sure you want to remove this meal plan from your history? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to remove this meal plan from your history? This action cannot be undone.',
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -277,10 +295,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     if (confirmed == true && mounted) {
       await ref.read(mealPlannerControllerProvider.notifier).deleteSavedPlan(planId);
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Meal plan permanently deleted.')),
-        );
+        navigator.pop();
+        messenger.showSnackBar(const SnackBar(content: Text('Meal plan permanently deleted.')));
       }
     }
   }

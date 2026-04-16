@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../controllers/history_controller.dart';
 import '../widgets/app_background.dart';
 import '../widgets/empty_state_view.dart';
 import '../widgets/history_plan_card.dart';
 import 'result_screen.dart';
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  int? _lastLoggedCount;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(analyticsServiceProvider)
+          .logScreenView(screenName: 'history_screen');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyState = ref.watch(historyControllerProvider);
 
     return Scaffold(
@@ -22,6 +40,15 @@ class HistoryScreen extends ConsumerWidget {
               const SliverAppBar(floating: true, title: Text('Saved Plans')),
               historyState.when(
                 data: (plans) {
+                  if (_lastLoggedCount != plans.length) {
+                    _lastLoggedCount = plans.length;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref
+                          .read(analyticsServiceProvider)
+                          .logHistoryViewed(savedPlansCount: plans.length);
+                    });
+                  }
+
                   if (plans.isEmpty) {
                     return SliverFillRemaining(
                       hasScrollBody: false,
@@ -47,7 +74,8 @@ class HistoryScreen extends ConsumerWidget {
                         return Dismissible(
                           key: Key('plan_${plan.id}'),
                           direction: DismissDirection.endToStart,
-                          confirmDismiss: (direction) => _showDeleteConfirmation(context, ref, plan.id!),
+                          confirmDismiss: (direction) =>
+                              _showDeleteConfirmation(context, ref, plan.id!),
                           background: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
@@ -55,7 +83,10 @@ class HistoryScreen extends ConsumerWidget {
                               color: Colors.red.shade400,
                               borderRadius: BorderRadius.circular(24),
                             ),
-                            child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.white,
+                            ),
                           ),
                           child: HistoryPlanCard(
                             mealPlan: plan,
@@ -63,7 +94,9 @@ class HistoryScreen extends ConsumerWidget {
                               final reopenedPlan = plan.id == null
                                   ? plan
                                   : await ref
-                                        .read(historyControllerProvider.notifier)
+                                        .read(
+                                          historyControllerProvider.notifier,
+                                        )
                                         .getPlanById(plan.id!);
 
                               if (!context.mounted || reopenedPlan == null) {
@@ -72,8 +105,10 @@ class HistoryScreen extends ConsumerWidget {
 
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      ResultScreen(initialPlan: reopenedPlan),
+                                  builder: (_) => ResultScreen(
+                                    initialPlan: reopenedPlan,
+                                    analyticsSource: 'history_list',
+                                  ),
                                 ),
                               );
                             },
@@ -112,12 +147,18 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 
-  Future<bool?> _showDeleteConfirmation(BuildContext context, WidgetRef ref, int planId) async {
+  Future<bool?> _showDeleteConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    int planId,
+  ) async {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Meal Plan?'),
-        content: const Text('Are you sure you want to remove this meal plan from your history? this action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to remove this meal plan from your history? this action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -125,7 +166,9 @@ class HistoryScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              await ref.read(historyControllerProvider.notifier).deletePlan(planId);
+              await ref
+                  .read(historyControllerProvider.notifier)
+                  .deletePlan(planId);
               if (context.mounted) {
                 Navigator.of(context).pop(true);
               }
